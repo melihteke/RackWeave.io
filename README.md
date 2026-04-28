@@ -4,7 +4,7 @@ A static, single-file site that turns a YAML datacenter fiber design into an
 interactive, draggable rack/connection diagram — and exports it as PNG, PDF,
 HTML or SVG. Runs entirely in your browser.
 
-🌐 **Live demo:** <https://melihteke.github.io/dc-rack-connection-builder/>
+🌐 **Live demo:** <https://melihteke.github.io/rackWeave.io/>
 
 > Inspired by [netweave.io](https://melihteke.github.io/netweave.io/) — but
 > rack & fiber focused.
