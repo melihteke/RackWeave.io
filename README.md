@@ -1,5 +1,7 @@
 # RackWeave — DC Rack Connection Builder
 
+<img width="1869" height="913" alt="image" src="https://github.com/user-attachments/assets/7ef67155-3dba-4a12-92e5-232b6d7b1d88" />
+
 A static, single-file site that turns a YAML datacenter fiber design into an
 interactive, draggable rack/connection diagram — and exports it as PNG, PDF,
 HTML or SVG. Runs entirely in your browser.
