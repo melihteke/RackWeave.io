@@ -137,6 +137,22 @@
   .modal-body p{margin:0 0 10px}
   .modal-body a{color:var(--cyan)}
   .modal-body code{background:var(--bg-2);padding:2px 6px;border:1px solid var(--line);font-size:11px;color:var(--amber)}
+  .modal.modal-lg{max-width:920px}
+  .modal-body pre.docs-code{
+    background:var(--bg-0);border:1px solid var(--line);padding:12px 14px;margin:8px 0 14px;
+    overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.55;
+    color:var(--ink);white-space:pre;
+  }
+  .modal-body table.docs-table{
+    width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:12px;
+  }
+  .modal-body table.docs-table th,
+  .modal-body table.docs-table td{
+    border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top;color:var(--ink-dim);
+  }
+  .modal-body table.docs-table th{background:var(--bg-2);color:var(--cyan);font-weight:500;letter-spacing:.5px}
+  .modal-body ul{margin:0 0 10px;padding-left:20px}
+  .modal-body ul li{margin-bottom:4px}
 
   /* ---------- toolbar ---------- */
   .toolbar{
@@ -219,6 +235,66 @@
   }
   #diagram{display:block;margin:0 auto;background:transparent;user-select:none}
 
+  /* Rack details panel (under diagram) */
+  .rack-details{
+    border-top:1px solid var(--line);background:var(--bg-1);max-height:42vh;overflow:auto;
+  }
+  .rack-details-head{
+    padding:10px 16px;display:flex;align-items:center;gap:10px;
+    font-size:10px;letter-spacing:2px;color:var(--ink-dim);text-transform:uppercase;
+    border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg-1);z-index:1;
+  }
+  .rack-details-head .idx{color:var(--cyan)}
+  .rack-details-head .right{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:10px;color:var(--ink-faint)}
+  .rack-details-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;padding:12px 16px;
+  }
+  .rack-card{
+    background:var(--bg-2);border:1px solid var(--line);font-size:12px;
+  }
+  .rack-card.fcr{border-color:var(--amber);background:rgba(255,179,71,0.04)}
+  html[data-theme="light"] .rack-card.fcr{background:rgba(184,115,26,0.06)}
+  .rack-card-head{
+    display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;
+    border-bottom:1px solid transparent;transition:background .15s ease;
+  }
+  .rack-card-head:hover{background:var(--bg-3)}
+  .rack-card.open .rack-card-head{border-bottom-color:var(--line)}
+  .rack-card-head .chev{
+    width:10px;height:10px;border-right:1.5px solid var(--ink-dim);border-bottom:1.5px solid var(--ink-dim);
+    transform:rotate(-45deg);transition:transform .18s ease;flex-shrink:0;margin-right:2px;
+  }
+  .rack-card.open .rack-card-head .chev{transform:rotate(45deg)}
+  .rack-card-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rack-card.fcr .rack-card-name{color:var(--amber)}
+  .rack-card-badge{
+    font-size:9px;letter-spacing:1px;color:var(--ink-faint);background:var(--bg-1);
+    border:1px solid var(--line);padding:2px 6px;text-transform:uppercase;
+  }
+  .rack-card-body{display:none;padding:10px 12px;border-top:1px solid var(--line)}
+  .rack-card.open .rack-card-body{display:block}
+  .rack-card-meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:10px;color:var(--ink-dim);margin-bottom:8px}
+  .rack-card-meta .k{color:var(--ink-faint);letter-spacing:1px;text-transform:uppercase;margin-right:4px}
+  .rack-card-meta .pwr-a{color:var(--power-a)}
+  .rack-card-meta .pwr-b{color:var(--power-b)}
+  .rack-devs{list-style:none;margin:0;padding:0;border-top:1px dashed var(--line)}
+  .rack-devs li{
+    display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);
+  }
+  .rack-devs li:last-child{border-bottom:none}
+  .rack-devs li .n{color:var(--cyan-dim);width:22px;font-size:10px;text-align:right}
+  .rack-devs .empty{color:var(--ink-faint);font-style:italic;font-size:11px;padding:5px 0}
+  .rack-trunks{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px}
+  .rack-trunks .lbl{font-size:9px;color:var(--ink-faint);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+  .rack-trunks .trunk{
+    display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ink-dim);padding:2px 0;
+  }
+  .rack-trunks .trunk .arrow{color:var(--ink-faint)}
+  .rack-trunks .trunk .smf{color:var(--cyan)}
+  .rack-trunks .trunk .mmf{color:var(--violet)}
+  .rack-trunks .trunk .strands{color:var(--green)}
+
   /* SVG node styling */
   .node{cursor:grab}
   .node.dragging{cursor:grabbing}
@@ -245,7 +321,8 @@
   }
   .fiber-link.animated{animation:flow 8s linear infinite}
   .fiber-link:hover{opacity:1;stroke-width:2.5;stroke-dasharray:none}
-  .strand-label{fill:var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;pointer-events:none}
+  .strand-label{fill:var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;cursor:grab;user-select:none}
+  .strand-label:hover{fill:var(--cyan);font-weight:700}
 
   @keyframes flow{
     0%{stroke-dashoffset:200}
@@ -292,11 +369,14 @@
     <button class="icon-btn" id="btnAbout" title="About RackWeave" aria-label="About">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
     </button>
+    <button class="icon-btn" id="btnDocs" title="YAML Documentation" aria-label="Documentation">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>
+    </button>
     <button class="icon-btn" id="btnTheme" title="Toggle theme" aria-label="Toggle theme">
       <svg id="themeIconDark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       <svg id="themeIconLight" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
     </button>
-    <a class="icon-btn" href="https://github.com/melihteke/dc-rack-connection-builder" target="_blank" rel="noopener" title="View source on GitHub" aria-label="GitHub">
+    <a class="icon-btn" href="https://github.com/melihteke/RackWeave.io" target="_blank" rel="noopener" title="View source on GitHub" aria-label="GitHub">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.69-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.79-.01 3.17 0 .31.21.68.8.56C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
     </a>
   </div>
@@ -374,6 +454,18 @@
     <div class="canvas-wrap" id="canvasWrap">
       <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
+    <div class="rack-details" id="rackDetails">
+      <div class="rack-details-head">
+        <span class="idx">03</span><span>RACK DETAILS</span>
+        <div class="right">
+          <span id="rdCount">0 racks</span>
+          <span>·</span>
+          <button class="btn ghost" id="btnExpandAll" style="padding:3px 8px;font-size:9px">Expand all</button>
+          <button class="btn ghost" id="btnCollapseAll" style="padding:3px 8px;font-size:9px">Collapse all</button>
+        </div>
+      </div>
+      <div class="rack-details-grid" id="rackDetailsGrid"></div>
+    </div>
   </section>
 </main>
 
@@ -405,7 +497,89 @@
       <p>This project was vibe-coded with Claude Opus 4.7 via GitHub Copilot.</p>
 
       <h3>Stack</h3>
-      <p>Vanilla JavaScript, SVG, <code>js-yaml</code>, <code>jsPDF</code>. No framework, no bundler. <a href="https://github.com/melihteke/dc-rack-connection-builder" target="_blank" rel="noopener">Source on GitHub</a>.</p>
+      <p>Vanilla JavaScript, SVG, <code>js-yaml</code>, <code>jsPDF</code>. No framework, no bundler. <a href="https://github.com/melihteke/RackWeave.io" target="_blank" rel="noopener">Source on GitHub</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Documentation modal -->
+<div class="modal-backdrop" id="docsModal" role="dialog" aria-modal="true" aria-labelledby="docsTitle">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <h2 id="docsTitle">YAML Documentation</h2>
+      <button class="icon-btn close" id="btnDocsClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>RackWeave reads a single YAML document under the top-level key <code>dc_fiber_design</code>. It describes a datacenter site, its colocation zones, an admin (FCR) zone, and the fiber trunks running between racks.</p>
+
+      <h3>1. Top-level structure</h3>
+      <pre class="docs-code">dc_fiber_design:
+  site: SITE-A                   # short site code (string)
+  site_metadata:                 # optional, free-form
+    region: Region-1
+    location: Example City
+
+  default_power_feeds: [pdu-a, pdu-b]   # used when a rack omits its own
+
+  colocations: [...]             # 1..N colocation zones (edge cabinets)
+  admin_zone:    {...}           # optional center "FCR" zone
+  fiber_connections_between_racks: {...}</pre>
+
+      <h3>2. <code>colocations[]</code> — edge zones</h3>
+      <p>Each colocation is a zone of edge racks. The first colocation is rendered on the <strong>left</strong>, the second on the <strong>right</strong>, alternating after that.</p>
+      <pre class="docs-code">colocations:
+  - id: 1
+    name: ZONE-A                 # zone label shown in the diagram
+    racks:
+      - name: SITE-A.ZONE-A.RACK-01    # required, must be unique
+        power_feeds: [pdu-a, pdu-b]    # optional, overrides default
+        devices:                       # optional list of device hostnames
+          - SITE-A-ZA-SW-01
+          - SITE-A-ZA-SW-02</pre>
+
+      <h3>3. <code>admin_zone</code> — Fiber Cross-Connect Room</h3>
+      <p>Optional. Rendered in the <strong>center</strong> as amber FCR cabinets.</p>
+      <pre class="docs-code">admin_zone:
+  name: CORE
+  racks:
+    - name: SITE-A.CORE.FCR-01
+      role: Fiber-Cross-Connect-Room   # optional sub-label
+      power_feeds: [pdu-a, pdu-b]</pre>
+
+      <h3>4. <code>fiber_connections_between_racks</code> — trunks</h3>
+      <p>Connections between rack nodes. Accepts either a flat list, or named groups (recommended) so you can color/filter logically related trunks.</p>
+      <pre class="docs-code">fiber_connections_between_racks:
+  zone_a_connections:
+    - { from: SITE-A.ZONE-A.RACK-01, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+    - { from: SITE-A.ZONE-A.RACK-02, to: SITE-A.CORE.FCR-02, strands: 12, type: MMF }
+  zone_b_connections:
+    - { from: SITE-A.ZONE-B.RACK-01, to: SITE-A.CORE.FCR-01, strands: 48, type: SMF }</pre>
+      <table class="docs-table">
+        <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
+        <tr><td><code>from</code></td><td>yes</td><td>Source rack <code>name</code></td></tr>
+        <tr><td><code>to</code></td><td>yes</td><td>Destination rack <code>name</code></td></tr>
+        <tr><td><code>strands</code></td><td>recommended</td><td>Number of strands; shown on the link mid-label</td></tr>
+        <tr><td><code>type</code></td><td>recommended</td><td>Fiber type — see below</td></tr>
+      </table>
+
+      <h3>5. Fiber types — <code>SMF</code> vs <code>MMF</code></h3>
+      <p>The <code>type</code> field is free-form, but RackWeave recognizes the two industry-standard values:</p>
+      <table class="docs-table">
+        <tr><th>Value</th><th>Meaning</th><th>Typical use</th></tr>
+        <tr><td><code>SMF</code></td><td>Single-Mode Fiber (OS1/OS2, 9/125 µm)</td><td>Long reach (≥ ~500 m), DCI, spine ↔ FCR, dark fiber</td></tr>
+        <tr><td><code>MMF</code></td><td>Multi-Mode Fiber (OM3/OM4/OM5, 50/125 µm)</td><td>Intra-row / short reach (&lt; ~300 m), ToR ↔ leaf, low-cost optics</td></tr>
+      </table>
+      <p>The value appears in the strand label (e.g. <code>24-SMF</code>, <code>12-MMF</code>) and in tooltips. You can use any string (e.g. <code>OM4</code>, <code>OS2</code>, <code>AOC</code>) — it will be displayed verbatim.</p>
+
+      <h3>6. Tips</h3>
+      <ul>
+        <li>Rack <code>name</code> values must be globally unique — they are the link join keys.</li>
+        <li>Strand labels (<code>24-SMF</code>, <code>12-MMF</code>, …) are <strong>draggable</strong> on the canvas — reposition them anywhere if a link is busy.</li>
+        <li>Hit <strong>Auto-Layout</strong> to discard manual rack positions and recompute.</li>
+        <li>Use <strong>Examples → 03 · Large multi-zone</strong> for an end-to-end reference YAML.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -505,6 +679,7 @@ const state = {
   linkStyle:"curved",
   animate:true,
   positionsLocked:new Set(), // ids the user dragged (don't auto-relayout them)
+  labelOffsets:new Map(),    // strand-label dx/dy offsets, keyed by `${from}||${to}||${group}`
   width:1400, height:820,
 };
 
@@ -703,14 +878,19 @@ function render(){
 
   // defs
   const defs = el("defs");
+  const isLight = (document.documentElement.getAttribute("data-theme")==="light");
+  const bgTop = isLight ? "#f5f7fb" : "#070b12";
+  const bgBot = isLight ? "#ffffff" : "#0c1320";
+  const gridStroke = isLight ? "rgba(8,132,163,0.08)" : "rgba(94,227,255,0.04)";
+  const dividerStroke = isLight ? "#c5cfdd" : "#1e2a42";
   defs.innerHTML = `
     <pattern id="rwGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(94,227,255,0.04)" stroke-width="1"/>
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${gridStroke}" stroke-width="1"/>
     </pattern>
     <filter id="rwGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
     <linearGradient id="rwBg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#070b12"/>
-      <stop offset="1" stop-color="#0c1320"/>
+      <stop offset="0" stop-color="${bgTop}"/>
+      <stop offset="1" stop-color="${bgBot}"/>
     </linearGradient>
   `;
   svg.appendChild(defs);
@@ -726,8 +906,8 @@ function render(){
 
   const dividerL = COL_LEFT_X + NODE_W + 90;
   const dividerR = state.width - NODE_W - COL_RIGHT_X_OFFSET - 90;
-  svg.appendChild(line(dividerL,0,dividerL,state.height,{stroke:"#1e2a42","stroke-dasharray":"3 5"}));
-  svg.appendChild(line(dividerR,0,dividerR,state.height,{stroke:"#1e2a42","stroke-dasharray":"3 5"}));
+  svg.appendChild(line(dividerL,0,dividerL,state.height,{stroke:dividerStroke,"stroke-dasharray":"3 5"}));
+  svg.appendChild(line(dividerR,0,dividerR,state.height,{stroke:dividerStroke,"stroke-dasharray":"3 5"}));
 
   // zone labels
   if(leftNodes.length){
@@ -765,10 +945,22 @@ function render(){
     p.addEventListener("mouseleave", hideTip);
     linksG.appendChild(p);
 
-    // strand label at midpoint
-    if(l.strands){
-      const mx = (p1.x+p2.x)/2, my=(p1.y+p2.y)/2 - 4;
-      linksG.appendChild(text(mx,my,`${l.strands}-${l.type||"S"}`,{class:"strand-label","text-anchor":"middle"}));
+    // strand label at midpoint (draggable)
+    if(l.strands || l.type){
+      const key = labelKey(l);
+      const off = state.labelOffsets.get(key) || {dx:0,dy:0};
+      const mx = (p1.x+p2.x)/2 + off.dx;
+      const my = (p1.y+p2.y)/2 - 4 + off.dy;
+      const labelText = `${l.strands||"?"}-${l.type||"S"}`;
+      const tEl = text(mx,my,labelText,{
+        class:"strand-label",
+        "text-anchor":"middle",
+        "data-link-key":key,
+        "data-base-x":(p1.x+p2.x)/2,
+        "data-base-y":(p1.y+p2.y)/2 - 4,
+      });
+      attachLabelDrag(tEl, key);
+      linksG.appendChild(tEl);
     }
   });
 
@@ -798,11 +990,14 @@ function render(){
   });
 
   // summary footer inside SVG
+  const sumFill = isLight ? "#eef2f8" : "#0c1320";
+  const sumStroke = isLight ? "#d4dbe6" : "#1e2a42";
+  const sumText = isLight ? "#5a6781" : "#8a99b6";
   const sum = el("g");
-  sum.appendChild(rect(20,state.height-70,state.width-40,50,{fill:"#0c1320",stroke:"#1e2a42"}));
+  sum.appendChild(rect(20,state.height-70,state.width-40,50,{fill:sumFill,stroke:sumStroke}));
   sum.appendChild(text(36,state.height-46,
     `${state.nodes.size} nodes · ${state.links.length} links · style: ${state.linkStyle}`,
-    {fill:"#8a99b6","font-family":"JetBrains Mono","font-size":"10","letter-spacing":"1.5"}));
+    {fill:sumText,"font-family":"JetBrains Mono","font-size":"10","letter-spacing":"1.5"}));
   svg.appendChild(sum);
 }
 
@@ -872,7 +1067,59 @@ function updateLinksFor(nodeId){
     const [p1,p2]=decideAnchors(a,b);
     p.setAttribute("d", pathFor(state.linkStyle,p1,p2));
   });
-  // re-render strand labels: simplest is full re-render of links on drag-end; for perf, skip live
+  // also reposition strand labels touching this node
+  state.links.forEach(l=>{
+    if(l.from!==nodeId && l.to!==nodeId) return;
+    const a=state.nodes.get(l.from), b=state.nodes.get(l.to);
+    if(!a||!b) return;
+    const [p1,p2]=decideAnchors(a,b);
+    const key = labelKey(l);
+    const off = state.labelOffsets.get(key) || {dx:0,dy:0};
+    const baseX = (p1.x+p2.x)/2;
+    const baseY = (p1.y+p2.y)/2 - 4;
+    const tEl = svg.querySelector(`.strand-label[data-link-key="${cssEsc(key)}"]`);
+    if(tEl){
+      tEl.setAttribute("x", baseX + off.dx);
+      tEl.setAttribute("y", baseY + off.dy);
+      tEl.setAttribute("data-base-x", baseX);
+      tEl.setAttribute("data-base-y", baseY);
+    }
+  });
+}
+function labelKey(l){ return `${l.from}||${l.to}||${l.group||""}`; }
+function attachLabelDrag(tEl, key){
+  let dragging=false, sx=0, sy=0, ox=0, oy=0;
+  tEl.style.cursor = "grab";
+  tEl.style.pointerEvents = "auto";
+  tEl.addEventListener("pointerdown", e=>{
+    if(e.button!==0) return;
+    dragging=true;
+    tEl.style.cursor="grabbing";
+    tEl.setPointerCapture(e.pointerId);
+    const pt = clientToSvg(e.clientX,e.clientY);
+    sx=pt.x; sy=pt.y;
+    const cur = state.labelOffsets.get(key) || {dx:0,dy:0};
+    ox=cur.dx; oy=cur.dy;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  tEl.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const pt = clientToSvg(e.clientX,e.clientY);
+    const dx = ox + (pt.x-sx);
+    const dy = oy + (pt.y-sy);
+    state.labelOffsets.set(key, {dx,dy});
+    const baseX = parseFloat(tEl.getAttribute("data-base-x"));
+    const baseY = parseFloat(tEl.getAttribute("data-base-y"));
+    tEl.setAttribute("x", baseX + dx);
+    tEl.setAttribute("y", baseY + dy);
+  });
+  const stop = ()=>{
+    if(!dragging) return;
+    dragging=false; tEl.style.cursor="grab";
+  };
+  tEl.addEventListener("pointerup", stop);
+  tEl.addEventListener("pointercancel", stop);
 }
 function cssEsc(s){return (window.CSS&&CSS.escape)?CSS.escape(s):s.replace(/["\\]/g,'\\$&');}
 
@@ -889,16 +1136,93 @@ function updateKpis(model){
   $("kStrands").innerHTML = `${strands}<em>total</em>`;
 }
 
+/* ---------- Rack Details panel ---------- */
+function escHtml(s){
+  return String(s==null?"":s).replace(/[&<>"']/g, c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function renderRackDetails(model){
+  const grid = $("rackDetailsGrid");
+  if(!grid) return;
+  const racks = model.racks || [];
+  $("rdCount").textContent = `${racks.length} rack${racks.length===1?"":"s"}`;
+
+  // Build adjacency: rack -> [{peer, strands, type, group}]
+  const adj = new Map();
+  (model.links||[]).forEach(l=>{
+    if(!adj.has(l.from)) adj.set(l.from, []);
+    if(!adj.has(l.to)) adj.set(l.to, []);
+    adj.get(l.from).push({peer:l.to, strands:l.strands, type:l.type, group:l.group, dir:"→"});
+    adj.get(l.to).push({peer:l.from, strands:l.strands, type:l.type, group:l.group, dir:"←"});
+  });
+
+  // Preserve open state across re-renders
+  const openSet = new Set();
+  grid.querySelectorAll(".rack-card.open").forEach(c=>openSet.add(c.dataset.id));
+
+  grid.innerHTML = racks.map(r=>{
+    const isFcr = r.kind==="fcr" || r.zoneSide==="center";
+    const power = (r.power||[]).map(p=>{
+      const cls = /a$/i.test(p) ? "pwr-a" : /b$/i.test(p) ? "pwr-b" : "";
+      return `<span class="${cls}">${escHtml(p).toUpperCase()}</span>`;
+    }).join(" / ") || "—";
+    const devs = (r.devices||[]);
+    const devList = devs.length
+      ? `<ul class="rack-devs">${devs.map((d,i)=>`<li><span class="n">${String(i+1).padStart(2,"0")}</span><span>${escHtml(d)}</span></li>`).join("")}</ul>`
+      : `<div class="rack-devs"><div class="empty">No devices listed</div></div>`;
+    const trunks = adj.get(r.id) || [];
+    const trunksHtml = trunks.length ? `
+      <div class="rack-trunks">
+        <div class="lbl">Fiber trunks (${trunks.length})</div>
+        ${trunks.map(t=>{
+          const typeCls = /smf/i.test(t.type) ? "smf" : /mmf/i.test(t.type) ? "mmf" : "";
+          return `<div class="trunk">
+            <span class="arrow">${t.dir}</span>
+            <span>${escHtml(t.peer)}</span>
+            <span style="margin-left:auto"><span class="strands">${escHtml(t.strands||"?")}</span> · <span class="${typeCls}">${escHtml(t.type||"fiber")}</span></span>
+          </div>`;
+        }).join("")}
+      </div>` : "";
+    const open = openSet.has(r.id) ? " open" : "";
+    const badge = isFcr ? "FCR" : "EDGE";
+    return `
+      <div class="rack-card${isFcr?" fcr":""}${open}" data-id="${escHtml(r.id)}">
+        <div class="rack-card-head">
+          <span class="chev"></span>
+          <span class="rack-card-name" title="${escHtml(r.name)}">${escHtml(r.name)}</span>
+          <span class="rack-card-badge">${badge}</span>
+        </div>
+        <div class="rack-card-body">
+          <div class="rack-card-meta">
+            <span><span class="k">Zone</span>${escHtml(r.zone||"—")}</span>
+            <span><span class="k">Power</span>${power}</span>
+            <span><span class="k">Devices</span>${devs.length}</span>
+            ${r.role ? `<span><span class="k">Role</span>${escHtml(r.role)}</span>` : ""}
+          </div>
+          ${devList}
+          ${trunksHtml}
+        </div>
+      </div>`;
+  }).join("");
+
+  // Wire toggle
+  grid.querySelectorAll(".rack-card-head").forEach(h=>{
+    h.addEventListener("click", ()=>h.parentElement.classList.toggle("open"));
+  });
+}
+
 /* ---------- main pipeline ---------- */
 function rebuild({ relayout=false }={}){
   const txt = ta.value;
   try{
     const model = parseYaml(txt);
     state.model = model;
-    if(relayout) state.positionsLocked.clear();
+    if(relayout){ state.positionsLocked.clear(); state.labelOffsets.clear(); }
     layout(model);
     render();
     updateKpis(model);
+    renderRackDetails(model);
     setStatus(true,"parsed");
   }catch(e){
     setStatus(false,"error");
@@ -942,6 +1266,13 @@ async function loadExample(url){
 }
 $("btnFormat").addEventListener("click",()=>rebuild());
 $("btnRelayout").addEventListener("click",()=>rebuild({relayout:true}));
+
+$("btnExpandAll").addEventListener("click",()=>{
+  document.querySelectorAll("#rackDetailsGrid .rack-card").forEach(c=>c.classList.add("open"));
+});
+$("btnCollapseAll").addEventListener("click",()=>{
+  document.querySelectorAll("#rackDetailsGrid .rack-card").forEach(c=>c.classList.remove("open"));
+});
 
 $("linkStyle").addEventListener("change", e=>{
   state.linkStyle = e.target.value; render();
@@ -1089,7 +1420,16 @@ function closeAbout(){ aboutModal.classList.remove("show"); }
 $("btnAbout").addEventListener("click", openAbout);
 $("btnAboutClose").addEventListener("click", closeAbout);
 aboutModal.addEventListener("click", e=>{ if(e.target===aboutModal) closeAbout(); });
-document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeAbout(); });
+
+/* ---------- docs modal ---------- */
+const docsModal = $("docsModal");
+function openDocs(){ docsModal.classList.add("show"); }
+function closeDocs(){ docsModal.classList.remove("show"); }
+$("btnDocs").addEventListener("click", openDocs);
+$("btnDocsClose").addEventListener("click", closeDocs);
+docsModal.addEventListener("click", e=>{ if(e.target===docsModal) closeDocs(); });
+
+document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeAbout(); closeDocs(); } });
 
 /* ---------- boot ---------- */
 // Try to load Example 01 from the examples/ folder; fall back to embedded YAML
