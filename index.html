@@ -179,8 +179,21 @@
   select.btn{appearance:none;padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--ink-dim) 50%),linear-gradient(135deg,var(--ink-dim) 50%,transparent 50%);background-position:calc(100% - 14px) center,calc(100% - 9px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
 
   /* ---------- main split ---------- */
-  main{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+  main{flex:1;display:grid;grid-template-columns:var(--editor-w,380px) 6px 1fr;min-height:0}
   .pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+
+  /* draggable splitter */
+  .splitter{
+    background:var(--line);cursor:col-resize;position:relative;transition:background .15s ease;
+    user-select:none;touch-action:none;
+  }
+  .splitter:hover,.splitter.dragging{background:var(--cyan)}
+  .splitter::before{
+    content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:2px;height:32px;background:var(--ink-faint);opacity:.6;
+    box-shadow:-4px 0 0 var(--ink-faint),4px 0 0 var(--ink-faint);
+  }
+  .splitter:hover::before,.splitter.dragging::before{background:var(--bg-0);box-shadow:-4px 0 0 var(--bg-0),4px 0 0 var(--bg-0);opacity:1}
   .pane-head{
     padding:10px 16px;border-bottom:1px solid var(--line);
     display:flex;align-items:center;gap:10px;background:var(--bg-1);
@@ -346,8 +359,11 @@
   }
 
   @media (max-width:900px){
-    main{grid-template-columns:1fr;grid-template-rows:280px 1fr}
+    main{grid-template-columns:1fr;grid-template-rows:280px 6px 1fr}
     .editor-pane{border-right:none;border-bottom:1px solid var(--line)}
+    .splitter{cursor:row-resize}
+    .splitter::before{width:32px;height:2px;box-shadow:0 -4px 0 var(--ink-faint),0 4px 0 var(--ink-faint)}
+    .splitter:hover::before,.splitter.dragging::before{box-shadow:0 -4px 0 var(--bg-0),0 4px 0 var(--bg-0)}
   }
 
   /* hide file inputs */
@@ -435,6 +451,8 @@
     </div>
     <div class="err-bar" id="errBar"></div>
   </section>
+
+  <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" title="Drag to resize · double-click to reset"></div>
 
   <section class="pane diagram-pane">
     <div class="pane-head">
@@ -714,6 +732,7 @@ function parseYaml(text){
         id:r.name, name:r.name, zone:admin.name||"ADMIN", zoneSide:"center",
         kind:"fcr",
         role:r.role||"",
+        devices:r.devices||[],
         power:r.power_feeds||root.default_power_feeds||[],
       }));
     }
@@ -973,7 +992,7 @@ function render(){
     g.appendChild(rect(0,0,n.w,n.h,{class:"node-bg"}));
     g.appendChild(text(14, 22, n.name, {class:"nm"}));
     const sub = n.kind==="fcr"
-      ? (n.role || "FIBER CROSS CONNECT")
+      ? `${(n.devices||[]).length} DEVICES · ${n.role || "FIBER CROSS CONNECT"}`
       : `${(n.devices||[]).length} DEVICES · ⚡ ${(n.power||[]).join("/").toUpperCase()||"PDU"}`;
     g.appendChild(text(14, 40, sub, {class:"sub"}));
     if(n.devices && n.devices.length){
@@ -1430,6 +1449,61 @@ $("btnDocsClose").addEventListener("click", closeDocs);
 docsModal.addEventListener("click", e=>{ if(e.target===docsModal) closeDocs(); });
 
 document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeAbout(); closeDocs(); } });
+
+/* ---------- editor splitter ---------- */
+const SPLIT_KEY = "rackweave.editorWidth";
+(function initSplitter(){
+  const splitter = $("splitter");
+  const mainEl = document.querySelector("main");
+  if(!splitter || !mainEl) return;
+  // restore saved width
+  try{
+    const saved = parseInt(localStorage.getItem(SPLIT_KEY),10);
+    if(saved && saved>=200 && saved<=window.innerWidth-300){
+      mainEl.style.setProperty("--editor-w", saved+"px");
+    }
+  }catch(_){}
+  let dragging=false;
+  const isVertical = ()=> window.matchMedia("(max-width:900px)").matches;
+  splitter.addEventListener("pointerdown", e=>{
+    if(e.button!==0) return;
+    dragging=true;
+    splitter.classList.add("dragging");
+    splitter.setPointerCapture(e.pointerId);
+    document.body.style.cursor = isVertical() ? "row-resize" : "col-resize";
+    e.preventDefault();
+  });
+  splitter.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const r = mainEl.getBoundingClientRect();
+    if(isVertical()){
+      // top row height
+      const h = Math.max(120, Math.min(r.height-180, e.clientY - r.top));
+      mainEl.style.gridTemplateRows = `${h}px 6px 1fr`;
+    } else {
+      const w = Math.max(220, Math.min(r.width-280, e.clientX - r.left));
+      mainEl.style.setProperty("--editor-w", w+"px");
+    }
+  });
+  const stop = ()=>{
+    if(!dragging) return;
+    dragging=false;
+    splitter.classList.remove("dragging");
+    document.body.style.cursor = "";
+    if(!isVertical()){
+      const cur = parseInt(getComputedStyle(mainEl).getPropertyValue("--editor-w"),10);
+      try{ if(cur) localStorage.setItem(SPLIT_KEY, String(cur)); }catch(_){}
+    }
+  };
+  splitter.addEventListener("pointerup", stop);
+  splitter.addEventListener("pointercancel", stop);
+  // double-click to reset
+  splitter.addEventListener("dblclick", ()=>{
+    mainEl.style.setProperty("--editor-w","380px");
+    mainEl.style.gridTemplateRows = "";
+    try{ localStorage.removeItem(SPLIT_KEY); }catch(_){}
+  });
+})();
 
 /* ---------- boot ---------- */
 // Try to load Example 01 from the examples/ folder; fall back to embedded YAML
