@@ -1,0 +1,38 @@
+---
+# ============================================================
+# Example 02 — Minimal Lab Topology
+# Two leaf cabinets, one spine cabinet, single-homed
+# Useful as a "Hello World" to validate your YAML quickly
+# ============================================================
+dc_fiber_design:
+  site: LAB-01
+  site_metadata:
+    region: Lab
+    location: Example Lab
+
+  default_power_feeds: [pdu-a]
+
+  colocations:
+    - id: 1
+      name: LEAF
+      racks:
+        - name: LAB-01.LEAF.RACK-01
+          power_feeds: [pdu-a]
+          devices:
+            - LAB-LEAF-01
+        - name: LAB-01.LEAF.RACK-02
+          power_feeds: [pdu-a]
+          devices:
+            - LAB-LEAF-02
+
+  admin_zone:
+    name: SPINE
+    racks:
+      - name: LAB-01.SPINE.RACK-01
+        role: Spine
+        power_feeds: [pdu-a]
+
+  fiber_connections_between_racks:
+    leaf_to_spine:
+      - { from: LAB-01.LEAF.RACK-01, to: LAB-01.SPINE.RACK-01, strands: 8, type: MMF }
+      - { from: LAB-01.LEAF.RACK-02, to: LAB-01.SPINE.RACK-01, strands: 8, type: MMF }

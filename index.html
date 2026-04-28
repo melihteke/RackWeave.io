@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>RackWeave — DC Rack Connection Builder</title>
+<meta name="description" content="Drop a YAML file describing your datacenter racks and fiber trunks — get an interactive, draggable, exportable rack diagram." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+
+<!-- Libraries (CDN, no build step) -->
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<style>
+  /* Dark theme (default) */
+  :root,
+  html[data-theme="dark"]{
+    --bg-0:#070b12;
+    --bg-1:#0c1320;
+    --bg-2:#121b2d;
+    --bg-3:#19233a;
+    --line:#1e2a42;
+    --line-bright:#2a3b5c;
+    --ink:#e7ecf5;
+    --ink-dim:#8a99b6;
+    --ink-faint:#4c5a77;
+    --cyan:#5ee3ff;
+    --cyan-dim:#3ca5bf;
+    --amber:#ffb347;
+    --amber-dim:#b87d2f;
+    --green:#7fffa8;
+    --red:#ff6b81;
+    --violet:#b794ff;
+    --power-a:#ff6b81;
+    --power-b:#7fffa8;
+    --grid:rgba(94,227,255,0.045);
+    --shadow:0 4px 14px rgba(0,0,0,0.5);
+  }
+  /* Light theme */
+  html[data-theme="light"]{
+    --bg-0:#f5f7fb;
+    --bg-1:#ffffff;
+    --bg-2:#eef2f8;
+    --bg-3:#dde4ef;
+    --line:#d4dbe6;
+    --line-bright:#b4bdce;
+    --ink:#1a2233;
+    --ink-dim:#5a6781;
+    --ink-faint:#8b96ad;
+    --cyan:#0884a3;
+    --cyan-dim:#3ca5bf;
+    --amber:#b8731a;
+    --amber-dim:#8a5614;
+    --green:#1d8a4d;
+    --red:#c53050;
+    --violet:#7b4fd6;
+    --power-a:#c53050;
+    --power-b:#1d8a4d;
+    --grid:rgba(8,132,163,0.06);
+    --shadow:0 4px 14px rgba(20,30,50,0.12);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg-0);color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased;height:100%}
+  body{
+    min-height:100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+      radial-gradient(ellipse at top left,rgba(94,227,255,0.06),transparent 60%),
+      radial-gradient(ellipse at bottom right,rgba(255,179,71,0.05),transparent 55%);
+    background-size:40px 40px,40px 40px,100% 100%,100% 100%;
+    display:flex;flex-direction:column;
+  }
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:500;letter-spacing:-0.02em;margin:0}
+  a{color:var(--cyan);text-decoration:none}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  header{
+    padding:18px 28px 14px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    position:relative;flex-shrink:0;
+  }
+  header::before{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
+    background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:.4;
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-mark{
+    width:42px;height:42px;border:1px solid var(--cyan);position:relative;
+    display:grid;place-items:center;background:rgba(94,227,255,0.05);
+  }
+  .brand-mark::before,.brand-mark::after{content:"";position:absolute;background:var(--cyan)}
+  .brand-mark::before{width:6px;height:6px;top:-3px;left:-3px}
+  .brand-mark::after{width:6px;height:6px;bottom:-3px;right:-3px}
+  .brand-mark span{color:var(--cyan);font-weight:700;font-size:12px;letter-spacing:1px}
+  .brand h1{font-size:19px}
+  .brand .sub{color:var(--ink-dim);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+
+  .nav-actions{display:flex;align-items:center;gap:10px}
+  .nav-tag{font-size:10px;color:var(--ink-dim);letter-spacing:1.5px;text-transform:uppercase;margin-right:6px}
+  .icon-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:34px;border:1px solid var(--line);background:var(--bg-1);color:var(--ink-dim);
+    cursor:pointer;transition:all .18s ease;text-decoration:none;
+  }
+  .icon-btn:hover{color:var(--cyan);border-color:var(--cyan);background:var(--bg-2)}
+
+  /* ---------- modal ---------- */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(7,11,18,0.72);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;z-index:200;padding:24px;
+  }
+  html[data-theme="light"] .modal-backdrop{background:rgba(20,30,50,0.45)}
+  .modal-backdrop.show{display:flex;animation:fadeIn .18s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal{
+    background:var(--bg-1);border:1px solid var(--line-bright);max-width:680px;width:100%;
+    max-height:85vh;overflow:auto;box-shadow:var(--shadow);position:relative;
+  }
+  .modal::before{
+    content:"";position:absolute;top:-1px;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+  }
+  .modal-head{
+    padding:18px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
+  }
+  .modal-head h2{font-size:18px;color:var(--cyan)}
+  .modal-head .close{margin-left:auto}
+  .modal-body{padding:20px 24px;font-size:13px;color:var(--ink-dim);line-height:1.7}
+  .modal-body h3{font-family:'Space Grotesk',sans-serif;color:var(--ink);font-size:14px;margin:18px 0 6px;letter-spacing:.5px}
+  .modal-body h3:first-child{margin-top:0}
+  .modal-body p{margin:0 0 10px}
+  .modal-body a{color:var(--cyan)}
+  .modal-body code{background:var(--bg-2);padding:2px 6px;border:1px solid var(--line);font-size:11px;color:var(--amber)}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 28px;border-bottom:1px solid var(--line);background:var(--bg-1);
+    flex-shrink:0;
+  }
+  .toolbar .group{
+    display:flex;align-items:center;gap:6px;padding:0 12px;border-right:1px dashed var(--line);
+  }
+  .toolbar .group:last-child{border-right:none}
+  .toolbar label{
+    font-size:9px;color:var(--ink-faint);letter-spacing:1.5px;text-transform:uppercase;margin-right:4px;
+  }
+  .btn{
+    background:var(--bg-2);border:1px solid var(--line);color:var(--ink-dim);
+    padding:7px 12px;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;
+    transition:all .18s ease;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{color:var(--ink);border-color:var(--line-bright);background:var(--bg-3)}
+  .btn.primary{color:var(--cyan);border-color:var(--cyan);background:rgba(94,227,255,0.06)}
+  .btn.primary:hover{background:rgba(94,227,255,0.14)}
+  .btn.ghost{background:transparent}
+  select.btn{appearance:none;padding-right:26px;background-image:linear-gradient(45deg,transparent 50%,var(--ink-dim) 50%),linear-gradient(135deg,var(--ink-dim) 50%,transparent 50%);background-position:calc(100% - 14px) center,calc(100% - 9px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+
+  /* ---------- main split ---------- */
+  main{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+  .pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+  .pane-head{
+    padding:10px 16px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;background:var(--bg-1);
+    font-size:10px;letter-spacing:2px;color:var(--ink-dim);text-transform:uppercase;
+  }
+  .pane-head .idx{color:var(--cyan)}
+  .pane-head .right{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:10px;color:var(--ink-faint)}
+  .pane-head .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+  .pane-head .dot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
+
+  /* YAML editor pane */
+  .editor-pane{border-right:1px solid var(--line);background:var(--bg-1)}
+  .editor-wrap{flex:1;position:relative;min-height:0}
+  textarea#yamlInput{
+    width:100%;height:100%;border:none;outline:none;resize:none;
+    background:var(--bg-0);color:var(--ink);
+    font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;
+    padding:14px 16px;tab-size:2;
+  }
+  .err-bar{
+    padding:8px 14px;font-size:11px;color:var(--red);background:rgba(255,107,129,0.08);
+    border-top:1px solid rgba(255,107,129,0.3);display:none;
+  }
+  .err-bar.show{display:block}
+
+  /* Diagram pane */
+  .diagram-pane{background:var(--bg-0);position:relative}
+  .kpis{
+    display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--line);
+    background:var(--bg-1);
+  }
+  .kpi{
+    flex:1;min-width:110px;background:var(--bg-2);border:1px solid var(--line);padding:8px 12px;
+    position:relative;overflow:hidden;
+  }
+  .kpi::after{content:"";position:absolute;top:0;right:0;width:24px;height:24px;
+    background:linear-gradient(135deg,transparent 50%,rgba(94,227,255,0.08) 50%);}
+  .kpi .label{font-size:9px;color:var(--ink-dim);letter-spacing:1.5px;text-transform:uppercase}
+  .kpi .value{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:500;margin-top:2px;color:var(--ink)}
+  .kpi .value em{font-style:normal;font-size:10px;margin-left:4px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace}
+  .kpi:nth-child(1) .value em{color:var(--cyan)}
+  .kpi:nth-child(2) .value em{color:var(--amber)}
+  .kpi:nth-child(3) .value em{color:var(--green)}
+  .kpi:nth-child(4) .value em{color:var(--violet)}
+
+  .canvas-wrap{
+    flex:1;overflow:auto;position:relative;background:var(--bg-0);
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:24px 24px;
+  }
+  #diagram{display:block;margin:0 auto;background:transparent;user-select:none}
+
+  /* SVG node styling */
+  .node{cursor:grab}
+  .node.dragging{cursor:grabbing}
+  .node rect.node-bg{
+    fill:var(--bg-2);stroke:var(--cyan);stroke-width:1.5;
+    transition:fill .2s ease,stroke-width .2s ease;
+  }
+  .node:hover rect.node-bg{fill:rgba(94,227,255,0.1);stroke-width:2}
+  .node.fcr rect.node-bg{fill:rgba(255,179,71,0.08);stroke:var(--amber)}
+  .node.fcr:hover rect.node-bg{fill:rgba(255,179,71,0.18)}
+  .node text.nm{fill:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;pointer-events:none}
+  .node text.sub{fill:var(--ink-dim);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;pointer-events:none}
+  .node.fcr text.nm{fill:var(--amber)}
+  .node.fcr text.sub{fill:var(--amber-dim)}
+  .node text.dev{fill:var(--ink-faint);font-family:'JetBrains Mono',monospace;font-size:8px;pointer-events:none}
+
+  .zone-label{fill:var(--cyan);font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;pointer-events:none}
+  .zone-label.fcr{fill:var(--amber)}
+  .zone-sub{fill:var(--ink-faint);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px;pointer-events:none}
+
+  .fiber-link{
+    stroke:var(--cyan);stroke-width:1.4;fill:none;opacity:.5;
+    stroke-dasharray:4 4;
+  }
+  .fiber-link.animated{animation:flow 8s linear infinite}
+  .fiber-link:hover{opacity:1;stroke-width:2.5;stroke-dasharray:none}
+  .strand-label{fill:var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;pointer-events:none}
+
+  @keyframes flow{
+    0%{stroke-dashoffset:200}
+    100%{stroke-dashoffset:0}
+  }
+
+  /* tooltip */
+  #tooltip{
+    position:fixed;pointer-events:none;background:var(--bg-2);border:1px solid var(--cyan);
+    padding:6px 10px;font-size:11px;color:var(--ink);z-index:100;display:none;
+    box-shadow:0 4px 14px rgba(0,0,0,0.5);max-width:280px;
+  }
+  #tooltip .t{color:var(--cyan);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+
+  /* footer */
+  footer{
+    padding:8px 28px;border-top:1px solid var(--line);color:var(--ink-faint);
+    font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;background:var(--bg-1);
+    flex-shrink:0;
+  }
+
+  @media (max-width:900px){
+    main{grid-template-columns:1fr;grid-template-rows:280px 1fr}
+    .editor-pane{border-right:none;border-bottom:1px solid var(--line)}
+  }
+
+  /* hide file inputs */
+  input[type="file"]{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark"><span>RW</span></div>
+    <div>
+      <h1>RackWeave</h1>
+      <div class="sub">DC Rack Connection Builder · YAML → Diagram</div>
+    </div>
+  </div>
+  <div class="nav-actions">
+    <span class="nav-tag">Static · No backend · No tracking</span>
+    <button class="icon-btn" id="btnAbout" title="About RackWeave" aria-label="About">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    </button>
+    <button class="icon-btn" id="btnTheme" title="Toggle theme" aria-label="Toggle theme">
+      <svg id="themeIconDark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="themeIconLight" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
+    <a class="icon-btn" href="https://github.com/melihteke/dc-rack-connection-builder" target="_blank" rel="noopener" title="View source on GitHub" aria-label="GitHub">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.69-3.87-1.54-3.87-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.51-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.21-1.49 3.18-1.18 3.18-1.18.62 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14 0 1.55-.01 2.79-.01 3.17 0 .31.21.68.8.56C20.21 21.39 23.5 17.07 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+    </a>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="group">
+    <label>YAML</label>
+    <button class="btn primary" id="btnLoadFile">📂 Load .yaml</button>
+    <select class="btn" id="exampleSelect" title="Load a bundled example">
+      <option value="">Examples…</option>
+      <option value="examples/01-small-dual-zone.yaml">01 · Small dual-zone</option>
+      <option value="examples/02-minimal-lab.yaml">02 · Minimal lab</option>
+      <option value="examples/03-large-multi-zone.yaml">03 · Large multi-zone</option>
+    </select>
+    <button class="btn ghost" id="btnFormat" title="Re-render diagram">↻ Render</button>
+    <input type="file" id="fileInput" accept=".yaml,.yml,.txt" />
+  </div>
+
+  <div class="group">
+    <label>Link Style</label>
+    <select class="btn" id="linkStyle">
+      <option value="curved">Curved</option>
+      <option value="straight">Straight</option>
+      <option value="orthogonal">Orthogonal</option>
+      <option value="rounded">Rounded Orthogonal</option>
+      <option value="step">Step</option>
+    </select>
+    <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-dim);font-size:10px;letter-spacing:1px;text-transform:uppercase">
+      <input type="checkbox" id="animateLinks" checked style="accent-color:var(--cyan)"/> Animate
+    </label>
+  </div>
+
+  <div class="group">
+    <label>Layout</label>
+    <button class="btn" id="btnRelayout">Auto-Layout</button>
+  </div>
+
+  <div class="group" style="margin-left:auto">
+    <label>Export</label>
+    <button class="btn" id="btnPng">PNG</button>
+    <button class="btn" id="btnPdf">PDF</button>
+    <button class="btn" id="btnHtml">HTML</button>
+    <button class="btn" id="btnSvg">SVG</button>
+  </div>
+</div>
+
+<main>
+  <section class="pane editor-pane">
+    <div class="pane-head">
+      <span class="idx">01</span><span>YAML INPUT</span>
+      <div class="right"><span id="parseDot" class="dot"></span><span id="parseTxt">parsed</span></div>
+    </div>
+    <div class="editor-wrap">
+      <textarea id="yamlInput" spellcheck="false" placeholder="# Paste your dc_fiber_design.yaml here, or click 'Sample'"></textarea>
+    </div>
+    <div class="err-bar" id="errBar"></div>
+  </section>
+
+  <section class="pane diagram-pane">
+    <div class="pane-head">
+      <span class="idx">02</span><span>RACK DIAGRAM</span>
+      <div class="right">
+        <span id="siteTag">—</span>
+        <span>·</span>
+        <span id="hint">drag nodes to fine-tune · scroll to pan</span>
+      </div>
+    </div>
+    <div class="kpis" id="kpis">
+      <div class="kpi"><div class="label">Zones</div><div class="value" id="kZones">0<em>colos</em></div></div>
+      <div class="kpi"><div class="label">Edge Racks</div><div class="value" id="kRacks">0<em>cabinets</em></div></div>
+      <div class="kpi"><div class="label">Trunks</div><div class="value" id="kTrunks">0<em>paths</em></div></div>
+      <div class="kpi"><div class="label">Strands</div><div class="value" id="kStrands">0<em>total</em></div></div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <svg id="diagram" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </section>
+</main>
+
+<div id="tooltip"></div>
+
+<!-- About modal -->
+<div class="modal-backdrop" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="aboutTitle">About RackWeave</h2>
+      <button class="icon-btn close" id="btnAboutClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>RackWeave turns a datacenter rack &amp; fiber design described in YAML into an interactive diagram, in the browser, with zero backend. Share the YAML the way engineers share code — the reader gets a first-class visual rendering rather than a screenshot.</p>
+
+      <h3>Why YAML?</h3>
+      <p>YAML is the language of network and infrastructure automation: Ansible, ContainerLab, intent files, design specs. RackWeave meets engineers where they already are. Drop a fiber design YAML unchanged and you get a diagram.</p>
+
+      <h3>Why static?</h3>
+      <p>Topology data is sensitive. RackWeave never sends your YAML anywhere — it’s a single static site that runs entirely in your browser. No account, no tracking, no backend.</p>
+
+      <h3>Author</h3>
+      <p>Melih Teke — Network Engineer.<br/>
+        <a href="https://www.linkedin.com/in/melih-teke/" target="_blank" rel="noopener">linkedin.com/in/melih-teke</a></p>
+
+      <h3>How it was built</h3>
+      <p>This project was vibe-coded with Claude Opus 4.7 via GitHub Copilot.</p>
+
+      <h3>Stack</h3>
+      <p>Vanilla JavaScript, SVG, <code>js-yaml</code>, <code>jsPDF</code>. No framework, no bundler. <a href="https://github.com/melihteke/dc-rack-connection-builder" target="_blank" rel="noopener">Source on GitHub</a>.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>RackWeave · static GitHub Pages app</div>
+  <div>YAML → SVG · drag · export PNG/PDF/HTML/SVG</div>
+</footer>
+
+<script>
+/* ============================================================
+   RackWeave — YAML driven rack/fiber diagram
+   ============================================================ */
+
+// Embedded fallback used when the page is opened directly via file:// (no fetch).
+// Anonymized — no real site/device data.
+const DEFAULT_YAML = `---
+# Example — Small dual-zone fiber design (anonymized)
+dc_fiber_design:
+  site: SITE-A
+  site_metadata:
+    region: Region-1
+    location: Example City
+
+  default_power_feeds: [pdu-a, pdu-b]
+
+  colocations:
+    - id: 1
+      name: ZONE-A
+      racks:
+        - name: SITE-A.ZONE-A.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZA-SW-01, SITE-A-ZA-SW-02]
+        - name: SITE-A.ZONE-A.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZA-SW-03, SITE-A-ZA-SW-04]
+        - name: SITE-A.ZONE-A.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZA-SW-05, SITE-A-ZA-SW-06]
+        - name: SITE-A.ZONE-A.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZA-SW-07, SITE-A-ZA-SW-08]
+
+    - id: 2
+      name: ZONE-B
+      racks:
+        - name: SITE-A.ZONE-B.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZB-SW-01, SITE-A-ZB-SW-02]
+        - name: SITE-A.ZONE-B.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZB-SW-03, SITE-A-ZB-SW-04]
+        - name: SITE-A.ZONE-B.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZB-SW-05, SITE-A-ZB-SW-06]
+        - name: SITE-A.ZONE-B.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-A-ZB-SW-07, SITE-A-ZB-SW-08]
+
+  admin_zone:
+    name: CORE
+    racks:
+      - name: SITE-A.CORE.FCR-01
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+      - name: SITE-A.CORE.FCR-02
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+
+  fiber_connections_between_racks:
+    zone_a_connections:
+      - { from: SITE-A.ZONE-A.RACK-01, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-01, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-02, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-02, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-03, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-03, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-04, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-04, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+    zone_b_connections:
+      - { from: SITE-A.ZONE-B.RACK-01, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-01, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-02, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-02, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-03, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-03, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-04, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-04, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+`;
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+const state = {
+  yaml:null, model:null,
+  nodes:new Map(),       // id -> {x,y,w,h,zone,kind,devices}
+  links:[],              // {from,to,strands,type,group}
+  linkStyle:"curved",
+  animate:true,
+  positionsLocked:new Set(), // ids the user dragged (don't auto-relayout them)
+  width:1400, height:820,
+};
+
+/* ---------- DOM refs ---------- */
+const $ = id => document.getElementById(id);
+const ta = $("yamlInput");
+const errBar = $("errBar");
+const svg = $("diagram");
+const tooltip = $("tooltip");
+
+/* ---------- YAML parsing ---------- */
+function parseYaml(text){
+  try{
+    const doc = jsyaml.load(text);
+    const root = doc?.dc_fiber_design || doc?.dc_design || doc;
+    if(!root || typeof root !== "object") throw new Error("Empty document");
+
+    const colocations = Array.isArray(root.colocations) ? root.colocations : [];
+    const admin = root.admin_zone || root.admin || null;
+
+    const racks = [];
+    colocations.forEach((c,zi)=>{
+      (c.racks||[]).forEach(r=>racks.push({
+        id:r.name, name:r.name, zone:c.name||`ZONE${zi+1}`, zoneSide:zi%2===0?"left":"right",
+        kind:"edge",
+        devices:r.devices||[],
+        power:r.power_feeds||c.default_power_feeds||root.default_power_feeds||[],
+      }));
+    });
+    if(admin && Array.isArray(admin.racks)){
+      admin.racks.forEach(r=>racks.push({
+        id:r.name, name:r.name, zone:admin.name||"ADMIN", zoneSide:"center",
+        kind:"fcr",
+        role:r.role||"",
+        power:r.power_feeds||root.default_power_feeds||[],
+      }));
+    }
+
+    // links
+    const links = [];
+    const groups = root.fiber_connections_between_racks || root.fiber_connections || {};
+    if(Array.isArray(groups)){
+      groups.forEach(l=>links.push(normLink(l,"all")));
+    } else if(groups && typeof groups==="object"){
+      Object.entries(groups).forEach(([g,arr])=>{
+        (arr||[]).forEach(l=>links.push(normLink(l,g)));
+      });
+    }
+
+    return {
+      site: root.site || "SITE",
+      meta: root.site_metadata || {},
+      colocations, admin, racks, links,
+    };
+  }catch(e){
+    throw e;
+  }
+}
+function normLink(l,group){
+  return {
+    from: l.from, to: l.to,
+    strands: l.strands ?? l.count ?? "",
+    type: l.type || "",
+    group,
+  };
+}
+
+/* ---------- layout ---------- */
+const NODE_W = 260, NODE_H = 60, V_GAP = 28;
+const COL_LEFT_X = 40, COL_RIGHT_X_OFFSET = 40, COL_CENTER_W = 280;
+
+function layout(model){
+  state.nodes.clear();
+
+  // Group racks by zoneSide
+  const left=[], right=[], center=[];
+  model.racks.forEach(r=>{
+    if(r.zoneSide==="left") left.push(r);
+    else if(r.zoneSide==="right") right.push(r);
+    else center.push(r);
+  });
+
+  const maxRows = Math.max(left.length,right.length,1);
+  const colHeight = maxRows*(NODE_H+V_GAP)+80;
+  const centerHeight = Math.max(center.length*(NODE_H+V_GAP)+40, 200);
+  const height = Math.max(colHeight, centerHeight) + 100;
+  const width = COL_LEFT_X + NODE_W + 220 + COL_CENTER_W + 220 + NODE_W + COL_RIGHT_X_OFFSET;
+
+  state.width = width;
+  state.height = height;
+
+  const placeCol = (arr, x) => {
+    const totalH = arr.length*NODE_H + (arr.length-1)*V_GAP;
+    const startY = Math.max(80, (height-totalH)/2);
+    arr.forEach((r,i)=>{
+      const id=r.id;
+      const node = state.nodes.get(id) || {};
+      const def = {
+        x, y: startY + i*(NODE_H+V_GAP),
+        w: NODE_W, h: NODE_H,
+        zone:r.zone, kind:r.kind, name:r.name, devices:r.devices||[], role:r.role||"", power:r.power||[],
+        zoneSide:r.zoneSide,
+      };
+      // preserve user-dragged position
+      if(state.positionsLocked.has(id) && node.x!=null){
+        def.x=node.x; def.y=node.y;
+      }
+      state.nodes.set(id, def);
+    });
+  };
+
+  const centerX = (width - COL_CENTER_W)/2 + (COL_CENTER_W-NODE_W)/2;
+  placeCol(left, COL_LEFT_X);
+  placeCol(right, width - NODE_W - COL_RIGHT_X_OFFSET);
+
+  // Center: stack nodes vertically centered
+  {
+    const totalH = center.length*NODE_H + (center.length-1)*V_GAP;
+    const startY = (height-totalH)/2;
+    center.forEach((r,i)=>{
+      const id=r.id;
+      const node = state.nodes.get(id) || {};
+      const def = {
+        x: centerX, y: startY + i*(NODE_H+V_GAP),
+        w: NODE_W, h: NODE_H,
+        zone:r.zone, kind:r.kind, name:r.name, devices:r.devices||[], role:r.role||"", power:r.power||[],
+        zoneSide:"center",
+      };
+      if(state.positionsLocked.has(id) && node.x!=null){
+        def.x=node.x; def.y=node.y;
+      }
+      state.nodes.set(id, def);
+    });
+  }
+
+  state.links = model.links.filter(l=>state.nodes.has(l.from) && state.nodes.has(l.to));
+}
+
+/* ---------- link path generators ---------- */
+function anchor(node, side){
+  // side: 'left'|'right'|'auto'
+  const cy = node.y + node.h/2;
+  if(side==="left") return {x:node.x, y:cy};
+  if(side==="right") return {x:node.x+node.w, y:cy};
+  return {x:node.x+node.w/2, y:cy};
+}
+function decideAnchors(a,b){
+  const aRight = a.x + a.w/2 < b.x + b.w/2;
+  return [
+    aRight ? anchor(a,"right") : anchor(a,"left"),
+    aRight ? anchor(b,"left")  : anchor(b,"right"),
+  ];
+}
+
+function pathFor(style, p1, p2){
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  switch(style){
+    case "straight":
+      return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+    case "curved":{
+      const cx = Math.abs(dx)*0.45;
+      return `M ${p1.x} ${p1.y} C ${p1.x+Math.sign(dx)*cx} ${p1.y}, ${p2.x-Math.sign(dx)*cx} ${p2.y}, ${p2.x} ${p2.y}`;
+    }
+    case "orthogonal":{
+      const mx = p1.x + dx/2;
+      return `M ${p1.x} ${p1.y} L ${mx} ${p1.y} L ${mx} ${p2.y} L ${p2.x} ${p2.y}`;
+    }
+    case "rounded":{
+      const r = Math.min(14, Math.abs(dx)/2, Math.abs(dy)/2 || 14);
+      const mx = p1.x + dx/2;
+      const sX = Math.sign(dx)||1, sY = Math.sign(dy)||1;
+      if(Math.abs(dy)<2) return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+      return `M ${p1.x} ${p1.y}
+              L ${mx - sX*r} ${p1.y}
+              Q ${mx} ${p1.y} ${mx} ${p1.y + sY*r}
+              L ${mx} ${p2.y - sY*r}
+              Q ${mx} ${p2.y} ${mx + sX*r} ${p2.y}
+              L ${p2.x} ${p2.y}`;
+    }
+    case "step":{
+      const mx = p1.x + dx*0.7;
+      return `M ${p1.x} ${p1.y} L ${mx} ${p1.y} L ${mx} ${p2.y} L ${p2.x} ${p2.y}`;
+    }
+  }
+  return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  // wipe svg
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  svg.setAttribute("viewBox", `0 0 ${state.width} ${state.height}`);
+  svg.setAttribute("width", state.width);
+  svg.setAttribute("height", state.height);
+
+  // defs
+  const defs = el("defs");
+  defs.innerHTML = `
+    <pattern id="rwGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(94,227,255,0.04)" stroke-width="1"/>
+    </pattern>
+    <filter id="rwGlow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="rwBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#070b12"/>
+      <stop offset="1" stop-color="#0c1320"/>
+    </linearGradient>
+  `;
+  svg.appendChild(defs);
+
+  // background
+  svg.appendChild(rect(0,0,state.width,state.height,{fill:"url(#rwBg)"}));
+  svg.appendChild(rect(0,0,state.width,state.height,{fill:"url(#rwGrid)"}));
+
+  // zone dividers + labels
+  const leftNodes = [...state.nodes.values()].filter(n=>n.zoneSide==="left");
+  const rightNodes = [...state.nodes.values()].filter(n=>n.zoneSide==="right");
+  const centerNodes = [...state.nodes.values()].filter(n=>n.zoneSide==="center");
+
+  const dividerL = COL_LEFT_X + NODE_W + 90;
+  const dividerR = state.width - NODE_W - COL_RIGHT_X_OFFSET - 90;
+  svg.appendChild(line(dividerL,0,dividerL,state.height,{stroke:"#1e2a42","stroke-dasharray":"3 5"}));
+  svg.appendChild(line(dividerR,0,dividerR,state.height,{stroke:"#1e2a42","stroke-dasharray":"3 5"}));
+
+  // zone labels
+  if(leftNodes.length){
+    const z = leftNodes[0].zone;
+    svg.appendChild(text(COL_LEFT_X+10, 30, z, {class:"zone-label"}));
+    svg.appendChild(text(COL_LEFT_X+10, 48, `${leftNodes.length} CABINETS`, {class:"zone-sub"}));
+  }
+  if(rightNodes.length){
+    const z = rightNodes[0].zone;
+    const x = state.width - NODE_W - COL_RIGHT_X_OFFSET + 10;
+    svg.appendChild(text(x, 30, z, {class:"zone-label"}));
+    svg.appendChild(text(x, 48, `${rightNodes.length} CABINETS`, {class:"zone-sub"}));
+  }
+  if(centerNodes.length){
+    const z = centerNodes[0].zone || "ADMIN";
+    const cx = state.width/2;
+    svg.appendChild(text(cx, 30, `${z} · FCR`, {class:"zone-label fcr","text-anchor":"middle"}));
+    svg.appendChild(text(cx, 48, "FIBER CROSS-CONNECT ROOM", {class:"zone-sub","text-anchor":"middle"}));
+  }
+
+  // links (drawn before nodes)
+  const linksG = el("g",{class:"links"});
+  svg.appendChild(linksG);
+  state.links.forEach((l,idx)=>{
+    const a = state.nodes.get(l.from), b = state.nodes.get(l.to);
+    const [p1,p2] = decideAnchors(a,b);
+    const p = el("path",{
+      d: pathFor(state.linkStyle,p1,p2),
+      class: "fiber-link"+(state.animate?" animated":""),
+      "data-from":l.from, "data-to":l.to, "data-idx":idx,
+    });
+    p.addEventListener("mouseenter", e=>showTip(e,
+      `<div class="t">${l.from} → ${l.to}</div><div>${l.strands||"?"} strands · ${l.type||"fiber"} · ${l.group}</div>`));
+    p.addEventListener("mousemove", moveTip);
+    p.addEventListener("mouseleave", hideTip);
+    linksG.appendChild(p);
+
+    // strand label at midpoint
+    if(l.strands){
+      const mx = (p1.x+p2.x)/2, my=(p1.y+p2.y)/2 - 4;
+      linksG.appendChild(text(mx,my,`${l.strands}-${l.type||"S"}`,{class:"strand-label","text-anchor":"middle"}));
+    }
+  });
+
+  // nodes
+  const nodesG = el("g",{class:"nodes"});
+  svg.appendChild(nodesG);
+  state.nodes.forEach((n,id)=>{
+    const g = el("g",{class:"node"+(n.kind==="fcr"?" fcr":""),"data-id":id,transform:`translate(${n.x},${n.y})`});
+    if(n.kind==="fcr") g.setAttribute("filter","url(#rwGlow)");
+    g.appendChild(rect(0,0,n.w,n.h,{class:"node-bg"}));
+    g.appendChild(text(14, 22, n.name, {class:"nm"}));
+    const sub = n.kind==="fcr"
+      ? (n.role || "FIBER CROSS CONNECT")
+      : `${(n.devices||[]).length} DEVICES · ⚡ ${(n.power||[]).join("/").toUpperCase()||"PDU"}`;
+    g.appendChild(text(14, 40, sub, {class:"sub"}));
+    if(n.devices && n.devices.length){
+      g.appendChild(text(14, 54, n.devices.slice(0,2).join("  ·  "), {class:"dev"}));
+    }
+    g.addEventListener("mouseenter", e=>{
+      const dl = (n.devices||[]).map(d=>`• ${d}`).join("<br/>") || "—";
+      showTip(e, `<div class="t">${n.name}</div><div>Zone: ${n.zone}<br/>Power: ${(n.power||[]).join(", ")||"—"}<br/>Devices:<br/>${dl}</div>`);
+    });
+    g.addEventListener("mousemove", moveTip);
+    g.addEventListener("mouseleave", hideTip);
+    attachDrag(g, id);
+    nodesG.appendChild(g);
+  });
+
+  // summary footer inside SVG
+  const sum = el("g");
+  sum.appendChild(rect(20,state.height-70,state.width-40,50,{fill:"#0c1320",stroke:"#1e2a42"}));
+  sum.appendChild(text(36,state.height-46,
+    `${state.nodes.size} nodes · ${state.links.length} links · style: ${state.linkStyle}`,
+    {fill:"#8a99b6","font-family":"JetBrains Mono","font-size":"10","letter-spacing":"1.5"}));
+  svg.appendChild(sum);
+}
+
+/* ---------- helpers ---------- */
+function el(tag,attrs={}){
+  const n = document.createElementNS(SVG_NS,tag);
+  for(const k in attrs) n.setAttribute(k,attrs[k]);
+  return n;
+}
+function rect(x,y,w,h,attrs={}){return el("rect",{x,y,width:w,height:h,...attrs});}
+function line(x1,y1,x2,y2,attrs={}){return el("line",{x1,y1,x2,y2,...attrs});}
+function text(x,y,t,attrs={}){const n=el("text",{x,y,...attrs});n.textContent=t;return n;}
+
+/* ---------- tooltip ---------- */
+function showTip(e,html){tooltip.innerHTML=html;tooltip.style.display="block";moveTip(e);}
+function moveTip(e){
+  const pad=14;
+  let x=e.clientX+pad, y=e.clientY+pad;
+  const r=tooltip.getBoundingClientRect();
+  if(x+r.width>window.innerWidth) x=e.clientX-r.width-pad;
+  if(y+r.height>window.innerHeight) y=e.clientY-r.height-pad;
+  tooltip.style.left=x+"px"; tooltip.style.top=y+"px";
+}
+function hideTip(){tooltip.style.display="none";}
+
+/* ---------- drag ---------- */
+function attachDrag(g, id){
+  let dragging=false, sx=0, sy=0, ox=0, oy=0;
+  g.addEventListener("pointerdown", e=>{
+    if(e.button!==0) return;
+    dragging=true; g.classList.add("dragging");
+    g.setPointerCapture(e.pointerId);
+    const pt = clientToSvg(e.clientX,e.clientY);
+    sx=pt.x; sy=pt.y;
+    const n = state.nodes.get(id);
+    ox=n.x; oy=n.y;
+    hideTip();
+    e.preventDefault();
+  });
+  g.addEventListener("pointermove", e=>{
+    if(!dragging) return;
+    const pt = clientToSvg(e.clientX,e.clientY);
+    const n = state.nodes.get(id);
+    n.x = ox + (pt.x-sx);
+    n.y = oy + (pt.y-sy);
+    g.setAttribute("transform",`translate(${n.x},${n.y})`);
+    updateLinksFor(id);
+  });
+  const stop = e=>{
+    if(!dragging) return;
+    dragging=false; g.classList.remove("dragging");
+    state.positionsLocked.add(id);
+  };
+  g.addEventListener("pointerup", stop);
+  g.addEventListener("pointercancel", stop);
+}
+function clientToSvg(cx,cy){
+  const pt = svg.createSVGPoint(); pt.x=cx; pt.y=cy;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function updateLinksFor(nodeId){
+  const paths = svg.querySelectorAll(`.fiber-link[data-from="${cssEsc(nodeId)}"], .fiber-link[data-to="${cssEsc(nodeId)}"]`);
+  paths.forEach(p=>{
+    const f=p.getAttribute("data-from"), t=p.getAttribute("data-to");
+    const a=state.nodes.get(f), b=state.nodes.get(t);
+    if(!a||!b) return;
+    const [p1,p2]=decideAnchors(a,b);
+    p.setAttribute("d", pathFor(state.linkStyle,p1,p2));
+  });
+  // re-render strand labels: simplest is full re-render of links on drag-end; for perf, skip live
+}
+function cssEsc(s){return (window.CSS&&CSS.escape)?CSS.escape(s):s.replace(/["\\]/g,'\\$&');}
+
+/* ---------- KPIs ---------- */
+function updateKpis(model){
+  $("siteTag").textContent = model.site || "—";
+  const colos = (model.colocations||[]).length;
+  const edge = model.racks.filter(r=>r.zoneSide!=="center").length;
+  const trunks = model.links.length;
+  const strands = model.links.reduce((a,l)=>a + (parseInt(l.strands)||0), 0);
+  $("kZones").innerHTML = `${colos}<em>colos</em>`;
+  $("kRacks").innerHTML = `${edge}<em>cabinets</em>`;
+  $("kTrunks").innerHTML = `${trunks}<em>paths</em>`;
+  $("kStrands").innerHTML = `${strands}<em>total</em>`;
+}
+
+/* ---------- main pipeline ---------- */
+function rebuild({ relayout=false }={}){
+  const txt = ta.value;
+  try{
+    const model = parseYaml(txt);
+    state.model = model;
+    if(relayout) state.positionsLocked.clear();
+    layout(model);
+    render();
+    updateKpis(model);
+    setStatus(true,"parsed");
+  }catch(e){
+    setStatus(false,"error");
+    showError(e.message||String(e));
+  }
+}
+function setStatus(ok,msg){
+  $("parseDot").classList.toggle("err",!ok);
+  $("parseTxt").textContent = msg;
+  if(ok){errBar.classList.remove("show"); errBar.textContent="";}
+}
+function showError(msg){errBar.textContent=`YAML error: ${msg}`; errBar.classList.add("show");}
+
+/* ---------- toolbar wiring ---------- */
+$("btnLoadFile").addEventListener("click",()=>$("fileInput").click());
+$("fileInput").addEventListener("change", e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{ ta.value = r.result; rebuild({relayout:true}); };
+  r.readAsText(f);
+});
+$("exampleSelect").addEventListener("change", async e=>{
+  const url = e.target.value;
+  if(!url) return;
+  await loadExample(url);
+  e.target.value = "";
+});
+async function loadExample(url){
+  try{
+    const res = await fetch(url, {cache:"no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    ta.value = await res.text();
+    rebuild({relayout:true});
+  }catch(err){
+    // fetch fails on file:// in some browsers — fall back to embedded default.
+    console.warn("Example fetch failed, using embedded default:", err);
+    ta.value = DEFAULT_YAML;
+    rebuild({relayout:true});
+    showError(`Could not load ${url} (${err.message}). Using embedded sample. Serve via HTTP for examples to load.`);
+  }
+}
+$("btnFormat").addEventListener("click",()=>rebuild());
+$("btnRelayout").addEventListener("click",()=>rebuild({relayout:true}));
+
+$("linkStyle").addEventListener("change", e=>{
+  state.linkStyle = e.target.value; render();
+});
+$("animateLinks").addEventListener("change", e=>{
+  state.animate = e.target.checked;
+  svg.querySelectorAll(".fiber-link").forEach(p=>p.classList.toggle("animated", state.animate));
+});
+
+let debTimer;
+ta.addEventListener("input", ()=>{
+  clearTimeout(debTimer);
+  debTimer = setTimeout(()=>rebuild(), 500);
+});
+
+/* ---------- export ---------- */
+function svgToString(){
+  // inline computed styles aren't necessary because we use presentation attrs/CSS in defs
+  // Add a <style> block so exports look right standalone.
+  const cssText = `
+    .node rect.node-bg{fill:#121b2d;stroke:#5ee3ff;stroke-width:1.5}
+    .node.fcr rect.node-bg{fill:rgba(255,179,71,0.08);stroke:#ffb347}
+    .node text.nm{fill:#e7ecf5;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500}
+    .node.fcr text.nm{fill:#ffb347}
+    .node text.sub{fill:#8a99b6;font-family:'JetBrains Mono',monospace;font-size:9px}
+    .node.fcr text.sub{fill:#b87d2f}
+    .node text.dev{fill:#4c5a77;font-family:'JetBrains Mono',monospace;font-size:8px}
+    .zone-label{fill:#5ee3ff;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px}
+    .zone-label.fcr{fill:#ffb347}
+    .zone-sub{fill:#4c5a77;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.5px}
+    .fiber-link{stroke:#5ee3ff;stroke-width:1.4;fill:none;opacity:.7;stroke-dasharray:4 4}
+    .strand-label{fill:#7fffa8;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500}
+  `;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns",SVG_NS);
+  const styleEl = document.createElementNS(SVG_NS,"style");
+  styleEl.textContent = cssText;
+  clone.insertBefore(styleEl, clone.firstChild);
+  return new XMLSerializer().serializeToString(clone);
+}
+function svgToCanvas(scale=2){
+  return new Promise((resolve,reject)=>{
+    const str = svgToString();
+    const blob = new Blob([str],{type:"image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = ()=>{
+      const c = document.createElement("canvas");
+      c.width = state.width*scale;
+      c.height = state.height*scale;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#070b12";
+      ctx.fillRect(0,0,c.width,c.height);
+      ctx.drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    img.onerror = e=>{URL.revokeObjectURL(url); reject(e);};
+    img.src = url;
+  });
+}
+function download(name, blob){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+function siteName(){return (state.model?.site || "rackweave").toLowerCase().replace(/[^a-z0-9_-]+/g,"_");}
+
+$("btnPng").addEventListener("click", async ()=>{
+  try{
+    const c = await svgToCanvas(2);
+    c.toBlob(b=>download(`${siteName()}-rack-diagram.png`, b), "image/png");
+  }catch(e){alert("PNG export failed: "+e);}
+});
+$("btnPdf").addEventListener("click", async ()=>{
+  try{
+    const c = await svgToCanvas(2);
+    const { jsPDF } = window.jspdf;
+    const landscape = c.width >= c.height;
+    const pdf = new jsPDF({orientation: landscape?"l":"p", unit:"pt", format:"a3"});
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const r = Math.min(pw/c.width, ph/c.height);
+    const w = c.width*r, h = c.height*r;
+    pdf.setFillColor(7,11,18);
+    pdf.rect(0,0,pw,ph,"F");
+    pdf.addImage(c.toDataURL("image/png"), "PNG", (pw-w)/2, (ph-h)/2, w, h);
+    pdf.save(`${siteName()}-rack-diagram.pdf`);
+  }catch(e){alert("PDF export failed: "+e);}
+});
+$("btnSvg").addEventListener("click", ()=>{
+  const blob = new Blob([svgToString()],{type:"image/svg+xml"});
+  download(`${siteName()}-rack-diagram.svg`, blob);
+});
+$("btnHtml").addEventListener("click", ()=>{
+  const svgStr = svgToString();
+  const yamlEsc = ta.value.replace(/</g,"&lt;");
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<title>${state.model?.site||"RackWeave"} — Rack Diagram</title>
+<style>
+  body{margin:0;background:#070b12;color:#e7ecf5;font-family:'JetBrains Mono',monospace;padding:24px}
+  h1{font-family:'Space Grotesk',sans-serif;color:#5ee3ff;margin:0 0 6px}
+  .sub{color:#8a99b6;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:24px}
+  .wrap{background:#0c1320;border:1px solid #1e2a42;padding:16px;overflow:auto}
+  pre{background:#0c1320;border:1px solid #1e2a42;padding:14px;overflow:auto;font-size:12px;color:#8a99b6;margin-top:24px}
+</style></head><body>
+<h1>${state.model?.site||"RackWeave"} — Rack Diagram</h1>
+<div class="sub">Generated by RackWeave · ${new Date().toISOString()}</div>
+<div class="wrap">${svgStr}</div>
+<h2 style="font-family:'Space Grotesk',sans-serif;color:#ffb347;margin-top:32px">Source YAML</h2>
+<pre>${yamlEsc}</pre>
+</body></html>`;
+  download(`${siteName()}-rack-diagram.html`, new Blob([html],{type:"text/html"}));
+});
+
+/* ---------- theme toggle ---------- */
+const THEME_KEY = "rackweave.theme";
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  $("themeIconDark").style.display  = theme==="dark"  ? "" : "none";
+  $("themeIconLight").style.display = theme==="light" ? "" : "none";
+  // re-render so SVG background gradient (which uses inline computed colors) refreshes
+  if(state.model) render();
+}
+(function initTheme(){
+  let t = null;
+  try{ t = localStorage.getItem(THEME_KEY); }catch(_){}
+  if(!t) t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+  applyTheme(t);
+})();
+$("btnTheme").addEventListener("click", ()=>{
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  const next = cur==="dark" ? "light" : "dark";
+  applyTheme(next);
+  try{ localStorage.setItem(THEME_KEY, next); }catch(_){}
+});
+
+/* ---------- about modal ---------- */
+const aboutModal = $("aboutModal");
+function openAbout(){ aboutModal.classList.add("show"); }
+function closeAbout(){ aboutModal.classList.remove("show"); }
+$("btnAbout").addEventListener("click", openAbout);
+$("btnAboutClose").addEventListener("click", closeAbout);
+aboutModal.addEventListener("click", e=>{ if(e.target===aboutModal) closeAbout(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeAbout(); });
+
+/* ---------- boot ---------- */
+// Try to load Example 01 from the examples/ folder; fall back to embedded YAML
+// when running via file:// where fetch is blocked.
+(async function boot(){
+  try{
+    const res = await fetch("examples/01-small-dual-zone.yaml", {cache:"no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    ta.value = await res.text();
+  }catch(_){
+    ta.value = DEFAULT_YAML;
+  }
+  rebuild({relayout:true});
+})();
+window.addEventListener("resize", ()=>{ /* svg uses viewBox so it scales naturally */ });
+</script>
+</body>
+</html>

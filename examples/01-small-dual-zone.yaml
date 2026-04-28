@@ -1,0 +1,92 @@
+---
+# ============================================================
+# Example 01 — Small Single-Site Fiber Design
+# Two colocations, four edge cabinets each, dual-homed to FCR
+# ============================================================
+dc_fiber_design:
+  site: SITE-A
+  site_metadata:
+    region: Region-1
+    location: Example City
+
+  default_power_feeds: [pdu-a, pdu-b]
+
+  colocations:
+    - id: 1
+      name: ZONE-A
+      racks:
+        - name: SITE-A.ZONE-A.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZA-SW-01
+            - SITE-A-ZA-SW-02
+        - name: SITE-A.ZONE-A.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZA-SW-03
+            - SITE-A-ZA-SW-04
+        - name: SITE-A.ZONE-A.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZA-SW-05
+            - SITE-A-ZA-SW-06
+        - name: SITE-A.ZONE-A.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZA-SW-07
+            - SITE-A-ZA-SW-08
+
+    - id: 2
+      name: ZONE-B
+      racks:
+        - name: SITE-A.ZONE-B.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZB-SW-01
+            - SITE-A-ZB-SW-02
+        - name: SITE-A.ZONE-B.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZB-SW-03
+            - SITE-A-ZB-SW-04
+        - name: SITE-A.ZONE-B.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZB-SW-05
+            - SITE-A-ZB-SW-06
+        - name: SITE-A.ZONE-B.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices:
+            - SITE-A-ZB-SW-07
+            - SITE-A-ZB-SW-08
+
+  admin_zone:
+    name: CORE
+    racks:
+      - name: SITE-A.CORE.FCR-01
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+      - name: SITE-A.CORE.FCR-02
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+
+  fiber_connections_between_racks:
+    zone_a_connections:
+      - { from: SITE-A.ZONE-A.RACK-01, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-01, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-02, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-02, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-03, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-03, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-04, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-A.RACK-04, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+
+    zone_b_connections:
+      - { from: SITE-A.ZONE-B.RACK-01, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-01, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-02, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-02, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-03, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-03, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-04, to: SITE-A.CORE.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-A.ZONE-B.RACK-04, to: SITE-A.CORE.FCR-02, strands: 24, type: SMF }

@@ -1,0 +1,96 @@
+---
+# ============================================================
+# Example 03 — Larger Multi-Zone Site (mixed strand counts)
+# Two colocations × 6 cabinets, dual FCR, mixed SMF/MMF trunks
+# ============================================================
+dc_fiber_design:
+  site: SITE-B
+  site_metadata:
+    region: Region-2
+    location: Example Metro
+
+  default_power_feeds: [pdu-a, pdu-b]
+
+  colocations:
+    - id: 1
+      name: HALL-1
+      racks:
+        - name: SITE-B.HALL-1.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-01, SITE-B-H1-SW-02]
+        - name: SITE-B.HALL-1.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-03, SITE-B-H1-SW-04]
+        - name: SITE-B.HALL-1.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-05, SITE-B-H1-SW-06]
+        - name: SITE-B.HALL-1.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-07, SITE-B-H1-SW-08]
+        - name: SITE-B.HALL-1.RACK-05
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-09, SITE-B-H1-SW-10]
+        - name: SITE-B.HALL-1.RACK-06
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H1-SW-11, SITE-B-H1-SW-12]
+
+    - id: 2
+      name: HALL-2
+      racks:
+        - name: SITE-B.HALL-2.RACK-01
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-01, SITE-B-H2-SW-02]
+        - name: SITE-B.HALL-2.RACK-02
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-03, SITE-B-H2-SW-04]
+        - name: SITE-B.HALL-2.RACK-03
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-05, SITE-B-H2-SW-06]
+        - name: SITE-B.HALL-2.RACK-04
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-07, SITE-B-H2-SW-08]
+        - name: SITE-B.HALL-2.RACK-05
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-09, SITE-B-H2-SW-10]
+        - name: SITE-B.HALL-2.RACK-06
+          power_feeds: [pdu-a, pdu-b]
+          devices: [SITE-B-H2-SW-11, SITE-B-H2-SW-12]
+
+  admin_zone:
+    name: MEET-ME-ROOM
+    racks:
+      - name: SITE-B.MMR.FCR-01
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+      - name: SITE-B.MMR.FCR-02
+        role: Fiber-Cross-Connect-Room
+        power_feeds: [pdu-a, pdu-b]
+
+  fiber_connections_between_racks:
+    hall_1_connections:
+      - { from: SITE-B.HALL-1.RACK-01, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-01, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-02, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-02, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-03, to: SITE-B.MMR.FCR-01, strands: 12, type: MMF }
+      - { from: SITE-B.HALL-1.RACK-03, to: SITE-B.MMR.FCR-02, strands: 12, type: MMF }
+      - { from: SITE-B.HALL-1.RACK-04, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-04, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-05, to: SITE-B.MMR.FCR-01, strands: 48, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-05, to: SITE-B.MMR.FCR-02, strands: 48, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-06, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-1.RACK-06, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+
+    hall_2_connections:
+      - { from: SITE-B.HALL-2.RACK-01, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-01, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-02, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-02, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-03, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-03, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-04, to: SITE-B.MMR.FCR-01, strands: 12, type: MMF }
+      - { from: SITE-B.HALL-2.RACK-04, to: SITE-B.MMR.FCR-02, strands: 12, type: MMF }
+      - { from: SITE-B.HALL-2.RACK-05, to: SITE-B.MMR.FCR-01, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-05, to: SITE-B.MMR.FCR-02, strands: 24, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-06, to: SITE-B.MMR.FCR-01, strands: 48, type: SMF }
+      - { from: SITE-B.HALL-2.RACK-06, to: SITE-B.MMR.FCR-02, strands: 48, type: SMF }
